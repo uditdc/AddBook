@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/rsc">
+        <file>face.png</file>
+    </qresource>
+</RCC>
