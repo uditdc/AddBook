@@ -82,23 +82,20 @@ void MainWindow::saveEntry(){
         for(int i=0;i<sizeOfArry;i++){
             query.bindValue(i,array[i]);
         }
-        qDebug() << ContactImage.filePath();
+
         query.bindValue(sizeOfArry,ContactImage.filePath());
 
         bool stat = query.exec();
 
         if(stat){
-            qDebug() << ContactImage.filePath();
+
             contactList.append(Contact((sizeof(array)/sizeof(QString)),array,ContactImage));
         }else{
            int action =  QMessageBox::warning(this,tr("Address Book"),
                                  tr("A Contact with the same name exists, do you want to update the information."),
                                  QMessageBox::Yes|QMessageBox::No);
            switch(action){
-               case QMessageBox::Yes :         qDebug() << ContactImage.filePath();
-                    editContact(getContact(array[0]),array,ContactImage);
-               break;
-               case QMessageBox::No : qDebug() << "no";
+               case QMessageBox::Yes : editContact(getContact(array[0]),array,ContactImage);
                break;
            }
         }
@@ -112,25 +109,30 @@ void MainWindow::saveEntry(){
 }
 
 void MainWindow::deleteEntry(){
-    Contact contact =  getContact(ui->lst_search->currentItem()->text());
-    QSqlQuery query;
-    query.prepare("Select imageId from contact where name = :name");
-    query.addBindValue(contact.getName());
-    query.exec();
+    if(ui->lst_search->selectedItems().isEmpty()){
+        QMessageBox::warning(this,tr("Address Book"),tr("No Contact is Selected to Delete."));
+    }else{
+        Contact contact =  getContact(ui->lst_search->currentItem()->text());
+        QSqlQuery query;
+        query.prepare("Select imageId from contact where name = :name");
+        query.addBindValue(contact.getName());
+        query.exec();
 
-    while(query.next()){
-        QString imageId = query.value(0).toString();
-        if(!imageId.isEmpty()) QFile::remove(imageId);
+        while(query.next()){
+            QString imageId = query.value(0).toString();
+            if(!imageId.isEmpty()) QFile::remove(imageId);
+        }
+
+        query.clear();
+        query.prepare("delete from contact where name = :name");
+        query.addBindValue(contact.getName());
+        query.exec();
+
+        contactList.remove(contact);
+        clearFields();
+        searchText("");
     }
 
-    query.clear();
-    query.prepare("delete from contact where name = :name");
-    query.addBindValue(contact.getName());
-    query.exec();
-
-    contactList.remove(contact);
-    clearFields();
-    searchText("");
 }
 
 void MainWindow::editContact(Contact contact, QString array[], QFileInfo contactImage){
@@ -253,7 +255,7 @@ void MainWindow::removeUnusedImages(){
     QList<QString> exstImages;
 
     while(query.next()){
-        qDebug() << query.value(0).toString();
+
         exstImages << query.value(0).toString();
     }
     QDir baseDir("image");
